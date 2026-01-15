@@ -1,63 +1,414 @@
-###############################################################################
-# Set default behavior to automatically normalize line endings.
-###############################################################################
-* text=auto
+#include <stdio.h>
+#include <math.h>
+#include <float.h>
+#include <stdlib.h>
+#include <locale.h>
+#include <string.h>
 
-###############################################################################
-# Set default behavior for command prompt diff.
-#
-# This is need for earlier builds of msysgit that does not have it on by
-# default for csharp files.
-# Note: This is only used by command line
-###############################################################################
-#*.cs     diff=csharp
+#define MAX_SOLUTIONS 100
+#define EPSILON 1e-10
+#define MAX_FILENAME 256
 
-###############################################################################
-# Set the merge driver for project and solution files
-#
-# Merging from the command prompt will add diff markers to the files if there
-# are conflicts (Merging from VS is not affected by the settings below, in VS
-# the diff markers are never inserted). Diff markers may cause the following 
-# file extensions to fail to load in VS. An alternative would be to treat
-# these files as binary and thus will always conflict and require user
-# intervention with every merge. To do so, just uncomment the entries below
-###############################################################################
-#*.sln       merge=binary
-#*.csproj    merge=binary
-#*.vbproj    merge=binary
-#*.vcxproj   merge=binary
-#*.vcproj    merge=binary
-#*.dbproj    merge=binary
-#*.fsproj    merge=binary
-#*.lsproj    merge=binary
-#*.wixproj   merge=binary
-#*.modelproj merge=binary
-#*.sqlproj   merge=binary
-#*.wwaproj   merge=binary
+double f(double x);
+int derivative(double x, double h, double* result);
+int find_abs_min(double a, double b, double step, double* min_val);
+int find_abs_max(double a, double b, double step, double* max_val);
+int find_x(double Y, double a, double b, double epsilon, double* solution);
+double safe_input_double(const char* prompt);
+int safe_input_int(const char* prompt);
+void clear_input_buffer();
+void save_table_to_file(double a, double b, double step, const char* filename);
 
-###############################################################################
-# behavior for image files
-#
-# image files are treated as binary by default.
-###############################################################################
-#*.jpg   binary
-#*.png   binary
-#*.gif   binary
+int main() {
+    int choice;
+    setlocale(LC_ALL, "RUS");
+    printf("Программа для работы с функцией f(x)\n");
+    printf("f(x) = {\n");
+    printf("  ln(2-x),           x < 0\n");
+    printf("  (e^(2x)-1)/(e^x-1), 0 <= x < 1\n");
+    printf("  sum(n=0 to 9) [(-1)^n * x^(n+1)/sqrt(n+3)], x >= 1\n");
+    printf("}\n\n");
 
-###############################################################################
-# diff behavior for common document formats
-# 
-# Convert binary document formats to text before diffing them. This feature
-# is only available from the command line. Turn it on by uncommenting the 
-# entries below.
-###############################################################################
-#*.doc   diff=astextplain
-#*.DOC   diff=astextplain
-#*.docx  diff=astextplain
-#*.DOCX  diff=astextplain
-#*.dot   diff=astextplain
-#*.DOT   diff=astextplain
-#*.pdf   diff=astextplain
-#*.PDF   diff=astextplain
-#*.rtf   diff=astextplain
-#*.RTF   diff=astextplain
+    do {
+        printf("\nМеню:\n");
+        printf("1. Значение функции в точке\n");
+        printf("2. Таблица значений на интервале (с сохранением в файл)\n");
+        printf("3. Минимум/максимум на отрезке\n");
+        printf("4. Поиск x по заданному Y\n");
+        printf("5. Производная в точке\n");
+        printf("0. Выход\n");
+        printf("Выберите операцию: ");
+
+        choice = safe_input_int("");
+        if (choice == -1) {
+            printf("Ошибка ввода. Пожалуйста, введите число.\n");
+            clear_input_buffer();
+            continue;
+        }
+
+        switch (choice) {
+        case 1: {
+            double x = safe_input_double("Введите x: ");
+            if (isnan(x)) {
+                printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                break;
+            }
+
+            double result = f(x);
+            if (!isnan(result)) {
+                printf("f(%.6f) = %.6f\n", x, result);
+            }
+            else {
+                printf("Ошибка: функция не определена в точке x = %.6f\n", x);
+            }
+            break;
+        }
+
+        case 2: {
+            double a = safe_input_double("Введите начало интервала a: ");
+            if (isnan(a)) {
+                printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                break;
+            }
+
+            double b = safe_input_double("Введите конец интервала b: ");
+            if (isnan(b)) {
+                printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                break;
+            }
+
+            double step = safe_input_double("Введите шаг: ");
+            if (isnan(step) || step <= 0) {
+                printf("Ошибка: шаг должен быть положительным числом.\n");
+                break;
+            }
+
+            if (a > b) {
+                printf("Ошибка: начало интервала должно быть меньше конца.\n");
+                break;
+            }
+
+            char filename[MAX_FILENAME];
+            printf("Введите имя файла для сохранения таблицы: ");
+            clear_input_buffer(); 
+            if (fgets(filename, sizeof(filename), stdin) == NULL) {
+                printf("Ошибка ввода имени файла.\n");
+                break;
+            }
+
+            filename[strcspn(filename, "\n")] = '\0';
+
+            if (strlen(filename) == 0) {
+                strcpy(filename, "table_output.txt");
+                printf("Имя файла не указано. Будет использовано имя по умолчанию: %s\n", filename);
+            }
+
+            printf("\nТаблица значений:\n");
+            printf("x\t\tf(x)\n");
+            printf("-----------------------\n");
+
+            for (double x = a; x <= b; x += step) {
+                double y = f(x);
+                if (!isnan(y)) {
+                    printf("%.6f\t%.6f\n", x, y);
+                }
+                else {
+                    printf("%.6f\tне определена\n", x);
+                }
+            }
+
+            // Сохраняем таблицу в файл
+            save_table_to_file(a, b, step, filename);
+
+            break;
+        }
+
+        case 3: {
+            double a = safe_input_double("Введите начало отрезка a: ");
+            if (isnan(a)) {
+                printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                break;
+            }
+
+            double b = safe_input_double("Введите конец отрезка b: ");
+            if (isnan(b)) {
+                printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                break;
+            }
+
+            double step = safe_input_double("Введите шаг для поиска: ");
+            if (isnan(step) || step <= 0) {
+                printf("Ошибка: шаг должен быть положительным числом.\n");
+                break;
+            }
+
+            if (a > b) {
+                printf("Ошибка: начало отрезка должно быть меньше конца.\n");
+                break;
+            }
+
+            double min_val, max_val;
+            int min_found = find_abs_min(a, b, step, &min_val);
+            int max_found = find_abs_max(a, b, step, &max_val);
+
+            if (min_found && max_found) {
+                printf("Наименьшее значение на отрезке: %.6f\n", min_val);
+                printf("Наибольшее по модулю значение на отрезке: %.6f\n", max_val);
+            }
+            else {
+                printf("Не удалось найти значения на отрезке (функция не определена)\n");
+            }
+            break;
+        }
+
+        case 4: {
+            double Y = safe_input_double("Введите Y: ");
+            if (isnan(Y)) {
+                printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                break;
+            }
+
+            double a = safe_input_double("Введите начало интервала поиска a: ");
+            if (isnan(a)) {
+                printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                break;
+            }
+
+            double b = safe_input_double("Введите конец интервала поиска b: ");
+            if (isnan(b)) {
+                printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                break;
+            }
+
+            double epsilon = safe_input_double("Введите точность epsilon: ");
+            if (isnan(epsilon) || epsilon <= 0) {
+                printf("Ошибка: точность должна быть положительным числом.\n");
+                break;
+            }
+
+            if (a > b) {
+                printf("Ошибка: начало интервала должно быть меньше конца.\n");
+                break;
+            }
+
+            double solution;
+            int found = find_x(Y, a, b, epsilon, &solution);
+            if (found) {
+                printf("Найденное решение: x = %.6f (f(x) = %.6f)\n", solution, f(solution));
+            }
+            else {
+                printf("Решение не найдено на заданном интервале\n");
+            }
+            break;
+        }
+
+        case 5: {
+            double x = safe_input_double("Введите x: ");
+            if (isnan(x)) {
+                printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                break;
+            }
+
+            double h = safe_input_double("Введите шаг h для вычисления производной: ");
+            if (isnan(h) || h <= 0) {
+                printf("Ошибка: шаг должен быть положительным числом.\n");
+                break;
+            }
+
+            double deriv_result;
+            int deriv_exists = derivative(x, h, &deriv_result);
+            if (deriv_exists) {
+                printf("f'(%.6f) = %.6f\n", x, deriv_result);
+            }
+            else {
+                printf("Производная не существует в точке x = %.6f\n", x);
+            }
+            break;
+        }
+
+        case 0:
+            printf("Выход из программы\n");
+            break;
+
+        default:
+            printf("Неверный выбор. Пожалуйста, выберите операцию из меню.\n");
+        }
+    } while (choice != 0);
+
+    return 0;
+}
+
+double f(double x) {
+    if (x < 0) {
+        if (x >= 2) {
+            return NAN;
+        }
+        return log(2 - x);
+    }
+    else if (x < 1) {
+        if (fabs(x) < EPSILON) {
+            return 2.0;
+        }
+        return (exp(2 * x) - 1) / (exp(x) - 1);
+    }
+    else {
+        double sum = 0;
+        for (int n = 0; n < 10; n++) {
+            double term = pow(-1, n) * pow(x, n + 1) / sqrt(n + 3);
+            sum += term;
+        }
+        return sum;
+    }
+}
+
+int derivative(double x, double h, double* result) {
+    if (fabs(x) < EPSILON || fabs(x - 1) < EPSILON) {
+        *result = NAN;
+        return 0;
+    }
+
+    double f_plus = f(x + h);
+    double f_minus = f(x - h);
+
+    if (isnan(f_plus) || isnan(f_minus)) {
+        *result = NAN;
+        return 0;
+    }
+
+    *result = (f_plus - f_minus) / (2 * h);
+    return 1;
+}
+
+int find_abs_min(double a, double b, double step, double* min_val) {
+    *min_val = DBL_MAX;
+    int found = 0;
+
+    for (double x = a; x <= b; x += step) {
+        double y = f(x);
+        if (!isnan(y)) {
+            found = 1;
+            if (y < *min_val) *min_val = y;
+        }
+    }
+
+    return found;
+}
+
+int find_abs_max(double a, double b, double step, double* max_val) {
+    *max_val = 0;
+    int found = 0;
+
+    for (double x = a; x <= b; x += step) {
+        double y = f(x);
+        if (!isnan(y)) {
+            found = 1;
+            double abs_y = fabs(y);
+            if (abs_y > *max_val) *max_val = abs_y;
+        }
+    }
+
+    return found;
+}
+
+int find_x(double Y, double a, double b, double epsilon, double* solution) {
+    double step = 0.01;
+    for (double x = a; x < b; x += step) {
+        double x_next = x + step;
+        if (x_next > b) x_next = b;
+
+        double f_x = f(x) - Y;
+        double f_next = f(x_next) - Y;
+
+        if (f_x * f_next <= 0 || fabs(f_x) < epsilon) {
+            double left = x;
+            double right = x_next;
+            int iterations = 0;
+
+            while (fabs(right - left) > epsilon && iterations < 1000) {
+                double mid = (left + right) / 2;
+                double f_mid = f(mid) - Y;
+
+                if (f_x * f_mid <= 0) {
+                    right = mid;
+                }
+                else {
+                    left = mid;
+                    f_x = f_mid;
+                }
+                iterations++;
+            }
+
+            *solution = (left + right) / 2;
+            return 1;
+        }
+    }
+
+    *solution = NAN;
+    return 0;
+}
+
+double safe_input_double(const char* prompt) {
+    printf("%s", prompt);
+    double value;
+    if (scanf("%lf", &value) != 1) {
+        return NAN;
+    }
+    clear_input_buffer();
+    return value;
+}
+
+int safe_input_int(const char* prompt) {
+    printf("%s", prompt);
+    int value;
+    if (scanf("%d", &value) != 1) {
+        return -1;
+    }
+    clear_input_buffer();
+    return value;
+}
+
+void clear_input_buffer() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
+
+void save_table_to_file(double a, double b, double step, const char* filename) {
+    FILE* file = fopen(filename, "w");
+    if (file == NULL) {
+        printf("Ошибка: не удалось открыть файл '%s' для записи.\n", filename);
+        return;
+    }
+
+    fprintf(file, "Таблица значений функции f(x)\n");
+    fprintf(file, "f(x) = {\n");
+    fprintf(file, "  ln(2-x),           x < 0\n");
+    fprintf(file, "  (e^(2x)-1)/(e^x-1), 0 <= x < 1\n");
+    fprintf(file, "  sum(n=0 to 9) [(-1)^n * x^(n+1)/sqrt(n+3)], x >= 1\n");
+    fprintf(file, "}\n\n");
+
+    fprintf(file, "Интервал: [%.6f, %.6f], шаг: %.6f\n\n", a, b, step);
+
+    
+    fprintf(file, "x\t\tf(x)\n");
+    fprintf(file, "-----------------------\n");
+
+    int point_count = 0;
+
+    for (double x = a; x <= b; x += step) {
+        double y = f(x);
+        if (!isnan(y)) {
+
+            fprintf(file, "%.6f\t%.6f\n", x, y);
+            point_count++;
+        }
+        else {
+            fprintf(file, "%.6f\tне определена\n", x);
+        }
+    }
+
+    fprintf(file, "\n------------------------\n");
+    fprintf(file, "Всего точек: %d\n", point_count);
+
+    fclose(file);
+    printf("Таблица успешно сохранена в файл '%s'\n", filename);
+}
