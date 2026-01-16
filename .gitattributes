@@ -13,10 +13,7 @@ double f(double x);
 int derivative(double x, double h, double* result);
 int find_abs_min(double a, double b, double step, double* min_val);
 int find_abs_max(double a, double b, double step, double* max_val);
-int find_x(double Y, double a, double b, double epsilon, double* solution);
-double safe_input_double(const char* prompt);
-int safe_input_int(const char* prompt);
-void clear_input_buffer();
+double find_x(double Y, double a, double b, double epsilon);
 void save_table_to_file(double a, double b, double step, const char* filename);
 
 int main() {
@@ -39,21 +36,22 @@ int main() {
         printf("0. Выход\n");
         printf("Выберите операцию: ");
 
-        choice = safe_input_int("");
-        if (choice == -1) {
+        if (scanf("%d", &choice) != 1) {
+            while (getchar() != '\n');
             printf("Ошибка ввода. Пожалуйста, введите число.\n");
-            clear_input_buffer();
             continue;
         }
-
+        while (getchar() != '\n');
         switch (choice) {
         case 1: {
-            double x = safe_input_double("Введите x: ");
-            if (isnan(x)) {
+            double x;
+            printf("Введите x: ");
+            if (scanf("%lf", &x) != 1) {
                 printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                while (getchar() != '\n');
                 break;
             }
-
+            while (getchar() != '\n');
             double result = f(x);
             if (!isnan(result)) {
                 printf("f(%.6f) = %.6f\n", x, result);
@@ -63,50 +61,51 @@ int main() {
             }
             break;
         }
-
         case 2: {
-            double a = safe_input_double("Введите начало интервала a: ");
-            if (isnan(a)) {
+            double a, b, step;
+            printf("Введите начало интервала a: ");
+            if (scanf("%lf", &a) != 1) {
                 printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                while (getchar() != '\n');
                 break;
             }
-
-            double b = safe_input_double("Введите конец интервала b: ");
-            if (isnan(b)) {
+            while (getchar() != '\n');
+            printf("Введите конец интервала b: ");
+            if (scanf("%lf", &b) != 1) {
                 printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                while (getchar() != '\n');
                 break;
             }
-
-            double step = safe_input_double("Введите шаг: ");
-            if (isnan(step) || step <= 0) {
+            while (getchar() != '\n');
+            printf("Введите шаг: ");
+            if (scanf("%lf", &step) != 1) {
+                printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                while (getchar() != '\n');
+                break;
+            }
+            while (getchar() != '\n');
+            if (step <= 0) {
                 printf("Ошибка: шаг должен быть положительным числом.\n");
                 break;
             }
-
             if (a > b) {
                 printf("Ошибка: начало интервала должно быть меньше конца.\n");
                 break;
             }
-
             char filename[MAX_FILENAME];
             printf("Введите имя файла для сохранения таблицы: ");
-            clear_input_buffer(); 
             if (fgets(filename, sizeof(filename), stdin) == NULL) {
                 printf("Ошибка ввода имени файла.\n");
                 break;
             }
-
             filename[strcspn(filename, "\n")] = '\0';
-
             if (strlen(filename) == 0) {
                 strcpy(filename, "table_output.txt");
                 printf("Имя файла не указано. Будет использовано имя по умолчанию: %s\n", filename);
             }
-
             printf("\nТаблица значений:\n");
             printf("x\t\tf(x)\n");
             printf("-----------------------\n");
-
             for (double x = a; x <= b; x += step) {
                 double y = f(x);
                 if (!isnan(y)) {
@@ -116,41 +115,43 @@ int main() {
                     printf("%.6f\tне определена\n", x);
                 }
             }
-
-            // Сохраняем таблицу в файл
             save_table_to_file(a, b, step, filename);
-
             break;
         }
-
         case 3: {
-            double a = safe_input_double("Введите начало отрезка a: ");
-            if (isnan(a)) {
+            double a, b, step;
+            printf("Введите начало отрезка a: ");
+            if (scanf("%lf", &a) != 1) {
                 printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                while (getchar() != '\n');
                 break;
             }
-
-            double b = safe_input_double("Введите конец отрезка b: ");
-            if (isnan(b)) {
+            while (getchar() != '\n');
+            printf("Введите конец отрезка b: ");
+            if (scanf("%lf", &b) != 1) {
                 printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                while (getchar() != '\n');
                 break;
             }
-
-            double step = safe_input_double("Введите шаг для поиска: ");
-            if (isnan(step) || step <= 0) {
+            while (getchar() != '\n');
+            printf("Введите шаг для поиска: ");
+            if (scanf("%lf", &step) != 1) {
+                printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                while (getchar() != '\n');
+                break;
+            }
+            while (getchar() != '\n');
+            if (step <= 0) {
                 printf("Ошибка: шаг должен быть положительным числом.\n");
                 break;
             }
-
             if (a > b) {
                 printf("Ошибка: начало отрезка должно быть меньше конца.\n");
                 break;
             }
-
             double min_val, max_val;
             int min_found = find_abs_min(a, b, step, &min_val);
             int max_found = find_abs_max(a, b, step, &max_val);
-
             if (min_found && max_found) {
                 printf("Наименьшее значение на отрезке: %.6f\n", min_val);
                 printf("Наибольшее по модулю значение на отрезке: %.6f\n", max_val);
@@ -160,40 +161,46 @@ int main() {
             }
             break;
         }
-
         case 4: {
-            double Y = safe_input_double("Введите Y: ");
-            if (isnan(Y)) {
+            double Y, a, b, epsilon;
+            printf("Введите Y: ");
+            if (scanf("%lf", &Y) != 1) {
                 printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                while (getchar() != '\n');
                 break;
             }
-
-            double a = safe_input_double("Введите начало интервала поиска a: ");
-            if (isnan(a)) {
+            while (getchar() != '\n');
+            printf("Введите начало интервала поиска a: ");
+            if (scanf("%lf", &a) != 1) {
                 printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                while (getchar() != '\n');
                 break;
             }
-
-            double b = safe_input_double("Введите конец интервала поиска b: ");
-            if (isnan(b)) {
+            while (getchar() != '\n');
+            printf("Введите конец интервала поиска b: ");
+            if (scanf("%lf", &b) != 1) {
                 printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                while (getchar() != '\n');
                 break;
             }
-
-            double epsilon = safe_input_double("Введите точность epsilon: ");
-            if (isnan(epsilon) || epsilon <= 0) {
+            while (getchar() != '\n');
+            printf("Введите точность epsilon: ");
+            if (scanf("%lf", &epsilon) != 1) {
+                printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                while (getchar() != '\n');
+                break;
+            }
+            while (getchar() != '\n');
+            if (epsilon <= 0) {
                 printf("Ошибка: точность должна быть положительным числом.\n");
                 break;
             }
-
             if (a > b) {
                 printf("Ошибка: начало интервала должно быть меньше конца.\n");
                 break;
             }
-
-            double solution;
-            int found = find_x(Y, a, b, epsilon, &solution);
-            if (found) {
+            double solution = find_x(Y, a, b, epsilon);
+            if (!isnan(solution)) {
                 printf("Найденное решение: x = %.6f (f(x) = %.6f)\n", solution, f(solution));
             }
             else {
@@ -201,20 +208,26 @@ int main() {
             }
             break;
         }
-
         case 5: {
-            double x = safe_input_double("Введите x: ");
-            if (isnan(x)) {
+            double x, h;
+            printf("Введите x: ");
+            if (scanf("%lf", &x) != 1) {
                 printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                while (getchar() != '\n');
                 break;
             }
-
-            double h = safe_input_double("Введите шаг h для вычисления производной: ");
-            if (isnan(h) || h <= 0) {
+            while (getchar() != '\n');
+            printf("Введите шаг h для вычисления производной: ");
+            if (scanf("%lf", &h) != 1) {
+                printf("Ошибка ввода. Пожалуйста, введите число.\n");
+                while (getchar() != '\n');
+                break;
+            }
+            while (getchar() != '\n');
+            if (h <= 0) {
                 printf("Ошибка: шаг должен быть положительным числом.\n");
                 break;
             }
-
             double deriv_result;
             int deriv_exists = derivative(x, h, &deriv_result);
             if (deriv_exists) {
@@ -225,7 +238,6 @@ int main() {
             }
             break;
         }
-
         case 0:
             printf("Выход из программы\n");
             break;
@@ -234,7 +246,6 @@ int main() {
             printf("Неверный выбор. Пожалуйста, выберите операцию из меню.\n");
         }
     } while (choice != 0);
-
     return 0;
 }
 
@@ -266,15 +277,12 @@ int derivative(double x, double h, double* result) {
         *result = NAN;
         return 0;
     }
-
     double f_plus = f(x + h);
     double f_minus = f(x - h);
-
     if (isnan(f_plus) || isnan(f_minus)) {
         *result = NAN;
         return 0;
     }
-
     *result = (f_plus - f_minus) / (2 * h);
     return 1;
 }
@@ -282,7 +290,6 @@ int derivative(double x, double h, double* result) {
 int find_abs_min(double a, double b, double step, double* min_val) {
     *min_val = DBL_MAX;
     int found = 0;
-
     for (double x = a; x <= b; x += step) {
         double y = f(x);
         if (!isnan(y)) {
@@ -290,14 +297,12 @@ int find_abs_min(double a, double b, double step, double* min_val) {
             if (y < *min_val) *min_val = y;
         }
     }
-
     return found;
 }
 
 int find_abs_max(double a, double b, double step, double* max_val) {
     *max_val = 0;
     int found = 0;
-
     for (double x = a; x <= b; x += step) {
         double y = f(x);
         if (!isnan(y)) {
@@ -306,24 +311,20 @@ int find_abs_max(double a, double b, double step, double* max_val) {
             if (abs_y > *max_val) *max_val = abs_y;
         }
     }
-
     return found;
 }
 
-int find_x(double Y, double a, double b, double epsilon, double* solution) {
+double find_x(double Y, double a, double b, double epsilon) {
     double step = 0.01;
     for (double x = a; x < b; x += step) {
         double x_next = x + step;
         if (x_next > b) x_next = b;
-
         double f_x = f(x) - Y;
         double f_next = f(x_next) - Y;
-
         if (f_x * f_next <= 0 || fabs(f_x) < epsilon) {
             double left = x;
             double right = x_next;
             int iterations = 0;
-
             while (fabs(right - left) > epsilon && iterations < 1000) {
                 double mid = (left + right) / 2;
                 double f_mid = f(mid) - Y;
@@ -337,39 +338,10 @@ int find_x(double Y, double a, double b, double epsilon, double* solution) {
                 }
                 iterations++;
             }
-
-            *solution = (left + right) / 2;
-            return 1;
+            return (left + right) / 2;
         }
     }
-
-    *solution = NAN;
-    return 0;
-}
-
-double safe_input_double(const char* prompt) {
-    printf("%s", prompt);
-    double value;
-    if (scanf("%lf", &value) != 1) {
-        return NAN;
-    }
-    clear_input_buffer();
-    return value;
-}
-
-int safe_input_int(const char* prompt) {
-    printf("%s", prompt);
-    int value;
-    if (scanf("%d", &value) != 1) {
-        return -1;
-    }
-    clear_input_buffer();
-    return value;
-}
-
-void clear_input_buffer() {
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF);
+    return NAN;
 }
 
 void save_table_to_file(double a, double b, double step, const char* filename) {
@@ -385,19 +357,13 @@ void save_table_to_file(double a, double b, double step, const char* filename) {
     fprintf(file, "  (e^(2x)-1)/(e^x-1), 0 <= x < 1\n");
     fprintf(file, "  sum(n=0 to 9) [(-1)^n * x^(n+1)/sqrt(n+3)], x >= 1\n");
     fprintf(file, "}\n\n");
-
     fprintf(file, "Интервал: [%.6f, %.6f], шаг: %.6f\n\n", a, b, step);
-
-    
     fprintf(file, "x\t\tf(x)\n");
     fprintf(file, "-----------------------\n");
-
     int point_count = 0;
-
     for (double x = a; x <= b; x += step) {
         double y = f(x);
         if (!isnan(y)) {
-
             fprintf(file, "%.6f\t%.6f\n", x, y);
             point_count++;
         }
@@ -405,10 +371,8 @@ void save_table_to_file(double a, double b, double step, const char* filename) {
             fprintf(file, "%.6f\tне определена\n", x);
         }
     }
-
     fprintf(file, "\n------------------------\n");
     fprintf(file, "Всего точек: %d\n", point_count);
-
     fclose(file);
     printf("Таблица успешно сохранена в файл '%s'\n", filename);
 }
