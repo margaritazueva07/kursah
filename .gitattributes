@@ -342,3 +342,34 @@ double find_x(double Y, double a, double b, double epsilon) {
 }
 
 void save_table_to_file(double a, double b, double step, const char* filename) {
+FILE* file = fopen(filename, "w");
+    if (file == NULL) {
+        printf("Ошибка: не удалось открыть файл '%s' для записи.\n", filename);
+        return;
+    }
+
+    fprintf(file, "Таблица значений функции f(x)\n");
+    fprintf(file, "f(x) = {\n");
+    fprintf(file, "  ln(2-x),           x < 0\n");
+    fprintf(file, "  (e^(2x)-1)/(e^x-1), 0 <= x < 1\n");
+    fprintf(file, "  sum(n=0 to 9) [(-1)^n * x^(n+1)/sqrt(n+3)], x >= 1\n");
+    fprintf(file, "}\n\n");
+    fprintf(file, "Интервал: [%.6f, %.6f], шаг: %.6f\n\n", a, b, step);
+    fprintf(file, "x\t\tf(x)\n");
+    fprintf(file, "-----------------------\n");
+    int point_count = 0;
+    for (double x = a; x <= b; x += step) {
+        double y = f(x);
+        if (!isnan(y)) {
+            fprintf(file, "%.6f\t%.6f\n", x, y);
+            point_count++;
+        }
+        else {
+            fprintf(file, "%.6f\tне определена\n", x);
+        }
+    }
+    fprintf(file, "\n------------------------\n");
+    fprintf(file, "Всего точек: %d\n", point_count);
+    fclose(file);
+    printf("Таблица успешно сохранена в файл '%s'\n", filename);
+}
