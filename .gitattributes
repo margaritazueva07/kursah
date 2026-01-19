@@ -10,9 +10,9 @@
 #define MAX_FILENAME 256
 
 double f(double x);
-int derivative(double x, double h, double* result);
-int find_abs_min(double a, double b, double step, double* min_val);
-int find_abs_max(double a, double b, double step, double* max_val);
+double derivative(double x, double h);
+double find_abs_min(double a, double b, double step);
+double find_abs_max(double a, double b, double step);
 double find_x(double Y, double a, double b, double epsilon);
 void save_table_to_file(double a, double b, double step, const char* filename);
 
@@ -149,10 +149,9 @@ int main() {
                 printf("Ошибка: начало отрезка должно быть меньше конца.\n");
                 break;
             }
-            double min_val, max_val;
-            int min_found = find_abs_min(a, b, step, &min_val);
-            int max_found = find_abs_max(a, b, step, &max_val);
-            if (min_found && max_found) {
+            double min_val = find_abs_min(a, b, step);
+            double max_val = find_abs_max(a, b, step);
+            if (!isnan(min_val) && !isnan(max_val)) {
                 printf("Наименьшее значение на отрезке: %.6f\n", min_val);
                 printf("Наибольшее по модулю значение на отрезке: %.6f\n", max_val);
             }
@@ -228,9 +227,8 @@ int main() {
                 printf("Ошибка: шаг должен быть положительным числом.\n");
                 break;
             }
-            double deriv_result;
-            int deriv_exists = derivative(x, h, &deriv_result);
-            if (deriv_exists) {
+            double deriv_result = derivative(x, h);
+            if (!isnan(deriv_result)) {
                 printf("f'(%.6f) = %.6f\n", x, deriv_result);
             }
             else {
@@ -272,46 +270,45 @@ double f(double x) {
     }
 }
 
-int derivative(double x, double h, double* result) {
+double derivative(double x, double h) {
     if (fabs(x) < EPSILON || fabs(x - 1) < EPSILON) {
-        *result = NAN;
-        return 0;
+        return NAN;
     }
     double f_plus = f(x + h);
     double f_minus = f(x - h);
     if (isnan(f_plus) || isnan(f_minus)) {
-        *result = NAN;
-        return 0;
+        return NAN;
     }
-    *result = (f_plus - f_minus) / (2 * h);
-    return 1;
+    return (f_plus - f_minus) / (2 * h);
 }
 
-int find_abs_min(double a, double b, double step, double* min_val) {
-    *min_val = DBL_MAX;
+double find_abs_min(double a, double b, double step) {
+    double min_val = DBL_MAX;
     int found = 0;
     for (double x = a; x <= b; x += step) {
         double y = f(x);
         if (!isnan(y)) {
             found = 1;
-            if (y < *min_val) *min_val = y;
+            if (y < min_val) min_val = y;
         }
     }
-    return found;
+    if (!found) return NAN;
+    return min_val;
 }
 
-int find_abs_max(double a, double b, double step, double* max_val) {
-    *max_val = 0;
+double find_abs_max(double a, double b, double step) {
+    double max_val = 0;
     int found = 0;
     for (double x = a; x <= b; x += step) {
         double y = f(x);
         if (!isnan(y)) {
             found = 1;
             double abs_y = fabs(y);
-            if (abs_y > *max_val) *max_val = abs_y;
+            if (abs_y > max_val) max_val = abs_y;
         }
     }
-    return found;
+    if (!found) return NAN;
+    return max_val;
 }
 
 double find_x(double Y, double a, double b, double epsilon) {
@@ -345,34 +342,3 @@ double find_x(double Y, double a, double b, double epsilon) {
 }
 
 void save_table_to_file(double a, double b, double step, const char* filename) {
-    FILE* file = fopen(filename, "w");
-    if (file == NULL) {
-        printf("Ошибка: не удалось открыть файл '%s' для записи.\n", filename);
-        return;
-    }
-
-    fprintf(file, "Таблица значений функции f(x)\n");
-    fprintf(file, "f(x) = {\n");
-    fprintf(file, "  ln(2-x),           x < 0\n");
-    fprintf(file, "  (e^(2x)-1)/(e^x-1), 0 <= x < 1\n");
-    fprintf(file, "  sum(n=0 to 9) [(-1)^n * x^(n+1)/sqrt(n+3)], x >= 1\n");
-    fprintf(file, "}\n\n");
-    fprintf(file, "Интервал: [%.6f, %.6f], шаг: %.6f\n\n", a, b, step);
-    fprintf(file, "x\t\tf(x)\n");
-    fprintf(file, "-----------------------\n");
-    int point_count = 0;
-    for (double x = a; x <= b; x += step) {
-        double y = f(x);
-        if (!isnan(y)) {
-            fprintf(file, "%.6f\t%.6f\n", x, y);
-            point_count++;
-        }
-        else {
-            fprintf(file, "%.6f\tне определена\n", x);
-        }
-    }
-    fprintf(file, "\n------------------------\n");
-    fprintf(file, "Всего точек: %d\n", point_count);
-    fclose(file);
-    printf("Таблица успешно сохранена в файл '%s'\n", filename);
-}
