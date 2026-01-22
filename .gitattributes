@@ -261,12 +261,7 @@ double f(double x) {
         return (exp(2 * x) - 1) / (exp(x) - 1);
     }
     else {
-        double sum = 0;
-        for (int n = 0; n < 10; n++) {
-            double term = pow(-1, n) * pow(x, n + 1) / sqrt(n + 3);
-            sum += term;
-        }
-        return sum;
+        return x/sqrt(3);
     }
 }
 
@@ -342,7 +337,7 @@ double find_x(double Y, double a, double b, double epsilon) {
 }
 
 void save_table_to_file(double a, double b, double step, const char* filename) {
-FILE* file = fopen(filename, "w");
+    FILE* file = fopen(filename, "w");
     if (file == NULL) {
         printf("Ошибка: не удалось открыть файл '%s' для записи.\n", filename);
         return;
